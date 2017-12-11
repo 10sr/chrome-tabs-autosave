@@ -2,6 +2,8 @@ const rootBookmarkName=["ブックマーク バー","自動タブ保存"];
 const snapShotDirectoryName = "スナップショット保存";
 const dailyDirectoryname    = "デイリー保存";
 
+const isVivaldi = !!navigator.appVersion.match(/Vivaldi/);
+
 chrome.runtime.onStartup.addListener(()=>{save();});
 chrome.runtime.onInstalled.addListener(function() {
 	//各時の0分～55分 次の時に初回発火
@@ -25,7 +27,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 async function save(){
 	let rootDirectory = await getRootBookmarkDirectoryId();
 	if( rootDirectory == null ){
-		let topRootDirectory = (await getBookmarkTree())[0];
+		let topRootDirectory = (await getBookmarkTree());
 		await makeDirectory(topRootDirectory,rootBookmarkName);
 	}
 	saveTabsForDaily();
@@ -109,7 +111,7 @@ async function saveAllTabs(directoryName){
 	}
 }
 async function getRootBookmarkDirectoryId(){
-	let currentDirectory = (await getBookmarkTree())[0];
+	let currentDirectory = (await getBookmarkTree());
 	for(let i of rootBookmarkName){
 		currentDirectory = getDirectoryObject(currentDirectory,i);
 		if( currentDirectory == null ){
@@ -147,7 +149,13 @@ async function makeDirectory(rootDirectory,directoryNames){
 //Promise
 function getBookmarkTree(){
 	return new Promise((resolve,reject)=>{
-		chrome.bookmarks.getTree(r=>{resolve(r)});
+		chrome.bookmarks.getTree(r=>{
+			if (isVivaldi) {
+				resolve(r[0].children[0]);
+			} else {
+				resolve(r[0]);
+			}
+		});
 	});
 }
 function createBookmark(obj){
